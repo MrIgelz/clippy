@@ -103,8 +103,26 @@ project.put("projectNumberPatternType", projectCompany.getProjectNumberPatternTy
 // ---------------------- end add
 TimeRegistrationCompany timeCompany = company.getTimeRegistrationCompany();
 
+// ...
+
+Boolean allowFavourites = (Boolean) project.get("allowFavourites");
+if (allowFavourites != null) {
+    projectCompany.setAllowFavourites(allowFavourites);
+}
+projectCompany.setReuseComment((Boolean) project.get("reuseComment"));
+projectCompany.setGitLabToken((String) project.get("gitlabToken"));
+
+// --------------------- add begin
+String projectNumberPatternType = (String) project.get("projectNumberPatternType");
+projectCompany.setProjectNumberPatternType(PatternType.valueOf(projectNumberPatternType));
+// ---------------------- end add
+
+boolean allowService = projectCompany.getAllowServices();
+projectCompany.setMandatoryService((Boolean) project.get("mandatoryService"));
+
 
 // project.ts 
+
 // --------------------- add begin
 projectNumberPatternType?: string;
 projectNumberRegex?: string;
