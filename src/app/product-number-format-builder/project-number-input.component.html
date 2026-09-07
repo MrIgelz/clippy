@@ -1,0 +1,30 @@
+@if (project) {
+  <div class="flex flex-column gap-2 mb-4">
+      <label for="projectNumberInput">{{ 'Projektnummer' }}</label>
+      
+      <input 
+          id="projectNumberInput" 
+          type="text" 
+          pInputText 
+          name="projectNumber"
+          [(ngModel)]="project.label" 
+          [pattern]="project.projectNumberRegex"
+          #projectNumber="ngModel"
+          [ngClass]="{'ng-invalid ng-dirty': projectNumber.invalid && (projectNumber.dirty || projectNumber.touched)}"
+          [disabled]="!project"
+      />
+
+      <small class="p-error block" *ngIf="projectNumber.invalid && (projectNumber.dirty || projectNumber.touched)">
+          <span *ngIf="projectNumber.errors?.['pattern']">
+              {{ invalidProjectNumberMessage }}
+          </span>
+      </small>
+  </div>
+
+  <p-button 
+      label="{{ 'Speichern' }}" 
+      icon="pi pi-check" 
+      (onClick)="onSave(projectNumber)"
+      [disabled]="!project">
+  </p-button>
+}

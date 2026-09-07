@@ -1,0 +1,52 @@
+@if (company) {
+    <div class="card card-w-title">
+        <h5>{{ 'Projektnummervalidierung' }}</h5>
+        <div class="flex flex-column gap-3">
+            <div class="flex align-items-center">
+                <p-radioButton
+                    name="patternType"
+                    value="ANY"
+                    [(ngModel)]="company.project.projectNumberPatternType"
+                    inputId="anyPattern">
+                </p-radioButton>
+                <label for="anyPattern" class="ml-2">Beliebiges Format</label>
+            </div>
+            <div class="flex align-items-center">
+                <p-radioButton
+                    name="patternType"
+                    value="NUMERIC_WITH_LEADING_ZEROS"
+                    [(ngModel)]="company.project.projectNumberPatternType"
+                    inputId="numericLeading">
+                </p-radioButton>
+                <label for="numericLeading" class="ml-2">Nur Ziffern (mit führenden Nullen)</label>
+            </div>
+            <div class="flex align-items-center">
+                <p-radioButton
+                    name="patternType"
+                    value="NUMERIC_NO_LEADING_ZEROS"
+                    [(ngModel)]="company.project.projectNumberPatternType"
+                    inputId="numericNoLeading">
+                </p-radioButton>
+                <label for="numericNoLeading" class="ml-2">Nur Ziffern (ohne führende Nullen)</label>
+            </div>
+            <div class="flex align-items-center">
+                <p-radioButton
+                    name="patternType"
+                    value="LETTERS_ONLY"
+                    [(ngModel)]="company.project.projectNumberPatternType"
+                    inputId="lettersOnly">
+                </p-radioButton>
+                <label for="lettersOnly" class="ml-2">Nur Alphabetisch</label>
+            </div>
+            <div class="flex align-items-center">
+                <p-radioButton
+                    name="patternType"
+                    value="ALPHANUMERIC"
+                    [(ngModel)]="company.project.projectNumberPatternType"
+                    inputId="alphanumeric">
+                </p-radioButton>
+                <label for="alphanumeric" class="ml-2">Nur Alphanumerisch</label>
+            </div>
+        </div>
+    </div>
+}
