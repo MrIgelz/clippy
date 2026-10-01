@@ -1,0 +1,337 @@
+<p-card header="Gitlab-Anbindung">
+		<div class="flex flex-column gap-4 pt-2">
+			<p-floatlabel variant="on">
+				<p-select
+					[showClear]="true"
+					id="gitlabConnection"
+					[options]="savedConnections"
+					[(ngModel)]="selectedConnection"
+					optionLabel="host"
+					styleClass="w-full">
+				</p-select>
+				<label for="gitlabConnection">GitLab-Host</label>
+			</p-floatlabel>
+
+			<p-floatlabel variant="on">
+				<input
+					pInputText
+					id="projectId"
+					[(ngModel)]="projectId"
+					class="w-full" />
+				<label for="projectId">GitLab Projekt-ID</label>
+			</p-floatlabel>
+			<div class="flex flex-column">
+				<div class="p-inputgroup">
+			<p-floatlabel variant="on">
+				<input
+					id="webhookSecret"
+					pInputText
+					[readOnly]="true"
+					[(ngModel)]="webhookSecret"
+					class="w-full"/>
+				<label for="webhookSecret">Webhook-Secret</label>
+			</p-floatlabel>
+
+					<button
+						type="button"
+						pButton
+						icon="pi pi-refresh"
+						severity="warn"
+						pTooltip="Neues Secret generieren"
+						tooltipPosition="top"
+						(click)="generateNewSecret()"
+						[loading]="isGeneratingSecret">
+					</button>
+
+				</div>
+
+				<!-- Kleiner UX-Hinweis, was der Admin damit tun soll -->
+				<small class="text-color-secondary line-height-3 pt-1">
+					Kopiere dieses Secret und füge es in GitLab in den Webhook-Einstellungen unter <strong>"Secret token"</strong> ein.
+				</small>
+
+			</div>
+		</div>
+	</p-card>
+
+	<p-dialog
+		header="GitLab Verbindung hinzufügen"
+		[(visible)]="displayAddDialog"
+		[modal]="true"
+		[style]="{ width: '500px' }"
+		[draggable]="false">
+
+		<div class="p-3 bg-blue-50 border-1 border-blue-200 border-round text-blue-700 text-sm flex align-items-start gap-3 mt-2 mb-4">
+			<i class="pi pi-info-circle text-xl mt-1"></i>
+			<div>
+				<span class="font-bold block mb-1">Hinweis zu Token-Berechtigungen</span>
+					Das Token benötigt den Scope <strong>api</strong>, um Issues bearbeiten zu können.<br>
+					Es wird die Rolle <strong>Reporter</strong> empfohlen, um Schreibzugriffe auf das Repository auszuschließen.
+			</div>
+		</div>
+
+		<div class="flex flex-column gap-4">
+			<div class="flex flex-column gap-2">
+				<label for="host" class="font-medium text-sm text-color-secondary">Host-URL <span class="text-red-500">*</span></label>
+				<input
+					pInputText
+					id="host"
+					[(ngModel)]="newUrl"
+					#urlInput="ngModel"
+					required
+					placeholder="https://gitlab.com" />
+				@if (urlInput.invalid && (urlInput.dirty || urlInput.touched)) {
+					<small class="text-red-500">Bitte gib eine gültige URL (inkl. http/https) ein.</small>
+				}
+			</div>
+
+			<!-- Feld: Access Token -->
+			<div class="flex flex-column gap-2">
+				<label for="token" class="font-medium text-sm text-color-secondary">Gitlab API-Token <span class="text-red-500">*</span></label>
+
+				<input
+					pInputText
+					id="token"
+					[(ngModel)]="newToken"
+					#tokenInput="ngModel"
+					required
+					placeholder="glpat-xxxxxxxxxxxxxxxxxxxx" />
+				@if (tokenInput.invalid && (tokenInput.dirty || tokenInput.touched)) {
+					<small class="text-red-500">Bitte füge ein Token ein.</small>
+				}
+			</div>
+
+			<!-- Fehler-Anzeige beim Speichern -->
+			@if (false) {
+				<div class="p-3 bg-red-50 border-1 border-red-200 border-round text-red-700 flex align-items-start gap-3">
+					<i class="pi pi-times-circle text-xl mt-1"></i>
+					<div class="pt-1">
+						<span class="font-bold block mb-1">Verbindung fehlgeschlagen</span>
+						<span class="text-sm block mb-2">Die Anfrage konnte nicht erfolgreich abgeschlossen werden. Mögliche Ursachen:</span>
+						<ul class="text-sm m-0 pl-3 line-height-3">
+							<li><strong>Token ungültig:</strong> Es ist abgelaufen, fehlerhaft oder wurde widerrufen.</li>
+							<li><strong>Host-URL falsch:</strong> Die Server-Adresse nicht erreichbar oder fehlerhaft.</li>
+							<li><strong>Netzwerk/Firewall:</strong>Ein Timeout ist aufgetreten.</li>
+						</ul>
+					</div>
+				</div>
+			}
+
+		</div>
+
+		<!-- Dialog Footer -->
+		<div class="flex justify-content-end gap-3 mt-5 pt-3 border-top-1 surface-border">
+			<p-button
+				label="Abbrechen"
+				[text]="true"
+				severity="secondary"
+				(onClick)="displayAddDialog = false">
+			</p-button>
+			<p-button
+				label="Testen & Speichern"
+				(onClick)="onSaveConnection(urlInput, tokenInput)"
+				[loading]="isSaving">
+			</p-button>
+		</div>
+	</p-dialog>
+
+	<p-dialog
+		header="Token-Status & Berechtigungen"
+		[(visible)]="displayInfoDialog"
+		[modal]="true"
+		[style]="{ width: '500px' }"
+		[draggable]="false">
+
+		@if (selectedAccess) {
+			<div class="flex flex-column gap-4 mt-3">
+				<div class="grid m-0 align-items-center">
+					<div class="col-4 p-0 font-medium text-color-secondary text-sm">Gitlab-Host</div>
+					<div class="col-8 p-0 text-sm">
+						<a [href]="selectedAccess.url" target="_blank" class="text-primary no-underline hover:underline">
+							{{ selectedAccess.host }}
+							<i class="pi pi-external-link text-xs ml-1"></i>
+						</a>
+					</div>
+					<div class="col-4 p-0 mt-3 font-medium text-color-secondary text-sm">Token</div>
+					<div class="col-8 p-0 mt-3 text-sm">
+						<span class="font-mono bg-black-alpha-10 px-2 py-1 border-round text-color-secondary">glpat-••••••••••••••••</span>
+					</div>
+				</div>
+				<div>
+					@if (isLoadingLiveDetails) {
+						<p-skeleton width="100%" height="3rem"></p-skeleton>
+					}
+					@else if (!liveDetails) {
+						<div class="p-3 bg-red-50 border-1 border-red-200 border-round text-red-700 flex align-items-start gap-3">
+							<i class="pi pi-times-circle text-xl mt-1"></i>
+							<div class="pt-1">
+								<span class="font-bold block mb-1">Verbindung fehlgeschlagen</span>
+								<span class="text-sm block mb-2">Die Anfrage konnte nicht erfolgreich abgeschlossen werden. Mögliche Ursachen:</span>
+								<ul class="text-sm m-0 pl-3 line-height-3">
+									<li><strong>Token ungültig:</strong> Es ist abgelaufen, fehlerhaft oder wurde widerrufen.</li>
+									<li><strong>Host-URL falsch:</strong> Die Server-Adresse nicht erreichbar oder fehlerhaft.</li>
+									<li><strong>Netzwerk/Firewall:</strong>Ein Timeout ist aufgetreten.</li>
+								</ul>
+							</div>
+						</div>
+					}
+					@else if (liveDetails) {
+						<div class="p-3 bg-green-50 border-1 border-green-200 border-round text-green-700 text-sm flex align-items-center gap-2 font-medium">
+							<i class="pi pi-check-circle text-lg"></i>
+							Token ist gültig und einsatzbereit.
+						</div>
+					}
+				</div>
+				@if (!isLoadingLiveDetails && liveDetails) {
+					<p-divider class="m-0"></p-divider>
+					<div class="grid m-0 align-items-center pb-2">
+						<div class="col-4 p-1 font-medium text-color-secondary text-sm">Token-Name</div>
+						<div class="col-8 p-1 text-sm">{{ liveDetails.tokenName }}</div>
+
+						<div class="col-4 p-1 font-medium text-color-secondary text-sm">Token-Art</div>
+						<div class="col-8 p-1 text-sm">{{ liveDetails.tokenType }}</div>
+
+						<div class="col-4 p-1 font-medium text-color-secondary text-sm">Inhaber</div>
+						<div class="col-8 p-1 text-sm">{{ liveDetails.userName }}</div>
+
+						<div class="col-4 p-1 font-medium text-color-secondary text-sm">Erstellt am</div>
+						<div class="col-8 p-1 text-sm">{{ liveDetails.createdAt | date:'dd.MM.yyyy, HH:mm' }} Uhr</div>
+
+						<div class="col-4 p-1 font-medium text-color-secondary text-sm">Zuletzt genutzt</div>
+						<div class="col-8 p-1 text-sm">
+							@if (liveDetails.lastUsedAt) {
+								{{ liveDetails.lastUsedAt | date:'dd.MM.yyyy, HH:mm' }} Uhr
+							} @else {
+								Noch nie genutzt
+							}
+						</div>
+
+						<div class="col-4 p-1 font-medium text-color-secondary text-sm">Gültig bis</div>
+						<div class="col-8 p-1 text-sm">
+							@if (liveDetails.expiresAt) {
+								{{ liveDetails.expiresAt | date:'dd.MM.yyyy' }}
+							} @else {
+								Unbegrenzt gültig
+							}
+						</div>
+
+						<div class="col-4 p-1 font-medium text-color-secondary text-sm align-self-start">Berechtigungen</div>
+						<div class="col-8 p-1 text-sm flex flex-wrap gap-2">
+							@for (scope of liveDetails.scopes; track scope) {
+								<p-tag [value]="scope" severity="secondary" [rounded]="true" styleClass="text-xs font-mono"></p-tag>
+							}
+						</div>
+
+					</div>
+				}
+			</div>
+		}
+	</p-dialog>
+
+	<p-card class="mt-4 shadow-2">
+		<ng-template pTemplate="header">
+			<div class="flex justify-content-between align-items-center p-4 pb-0">
+				<div>
+					<h2 class="m-0 text-xl font-bold">GitLab-Verbindungen</h2>
+					<p class="text-color-secondary text-sm m-0 mt-1">
+						GitLab-Instanzen und Zugriffstoken verwalten.
+					</p>
+				</div>
+				<p-button
+					label="Neue Verbindung"
+					icon="pi pi-plus"
+					(onClick)="openAddDialog()">
+				</p-button>
+			</div>
+		</ng-template>
+
+		<p-table [value]="gitlabAccesses" [rowHover]="true" styleClass="p-datatable-sm">
+			<ng-template pTemplate="header">
+				@if (gitlabAccesses && gitlabAccesses.length > 0) {
+				<tr>
+					<th>Host</th>
+					<th>Personal Access Token</th>
+					<th>Gültigkeit</th>
+					<!-- Spaltenkopf auch rechtsbündig -->
+					<th class="text-right">Aktionen</th>
+				</tr>
+				}
+			</ng-template>
+
+			<ng-template pTemplate="body" let-access>
+				<tr>
+					<td style="max-width: 15rem;">
+						<div class="white-space-nowrap overflow-hidden text-overflow-ellipsis"
+							 [pTooltip]="access.host"
+							 tooltipPosition="top">
+							<a [href]="access.url" target="_blank" class="text-primary no-underline hover:underline">
+								{{ access.host }}
+								<i class="pi pi-external-link text-xs ml-1"></i>
+							</a>
+						</div>
+					</td>
+
+					<td>
+						<span class="font-mono text-sm bg-black-alpha-10 px-2 py-1 border-round text-color-secondary">
+							glpat-••••••••••••••••
+						</span>
+					</td>
+
+					<td>
+						<p-tag
+							[value]="access.expiresInDays > 0 ? access.expiresInDays + ' Tage' : 'Abgelaufen'"
+							[severity]="getExpirationSeverity(access.expiresInDays)">
+						</p-tag>
+					</td>
+
+					<td class="flex justify-content-end gap-1">
+						<p-button
+							icon="pi pi-info-circle"
+							[rounded]="true"
+							[text]="true"
+							size="small"
+							severity="info"
+							pTooltip="Details und Status"
+							tooltipPosition="left"
+							(onClick)="openInfoDialog(access)">
+						</p-button>
+
+						<p-button
+							icon="pi pi-pencil"
+							[rounded]="true"
+							[text]="true"
+							size="small"
+							severity="secondary"
+							pTooltip="Bearbeiten"
+							tooltipPosition="left"
+							(onClick)="openEditDialog(access)">
+						</p-button>
+
+						<!-- Löschen-Button -->
+						<p-button
+							icon="pi pi-trash"
+							[rounded]="true"
+							[text]="true"
+							size="small"
+							severity="danger"
+							pTooltip="Löschen"
+							tooltipPosition="left"
+							(onClick)="deleteAccess(access)">
+						</p-button>
+					</td>
+				</tr>
+			</ng-template>
+
+			<ng-template pTemplate="emptymessage">
+				<tr>
+					<!-- colspan an die Anzahl deiner Spalten anpassen! (z.B. Name, URL, Token, Status, Aktionen = 5) -->
+					<td colspan="5" class="text-center p-5 surface-50 border-bottom-none">
+						<div class="flex flex-column align-items-center justify-content-center text-color-secondary my-4">
+							<i class="pi pi-server text-5xl mb-3 text-400"></i>
+							<span class="font-semibold text-lg mb-1">Keine GitLab-Verbindungen vorhanden</span>
+						</div>
+					</td>
+				</tr>
+			</ng-template>
+		</p-table>
+	</p-card>
